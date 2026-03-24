@@ -216,8 +216,9 @@ COUNTRIES = [
 def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
     """Scrape frontpages.com/<slug>/ page and return the cover image URL for today.
 
-    Uses the og:image meta tag which always points to the specific paper's cover.
-    Falls back to scanning <img> tags if og:image is generic.
+    The main cover is loaded via JavaScript (id="giornale-img" has no src in HTML).
+    The og:image meta tag contains the correct paper-specific URL but uses the /g/
+    path which returns 404. We convert it to the working /t/ thumbnail path.
     """
     if not slug:
         return None
@@ -232,21 +233,17 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
     soup = BeautifulSoup(resp.text, "html.parser")
     date_prefix = date.strftime("%Y/%m/%d")
 
-    # Primary: og:image meta tag — always the specific paper's cover when on a paper page
+    # og:image has the right paper-specific URL but uses /g/ path (404).
+    # Convert: /g/YYYY/MM/DD/slug-XXX.webp.jpg  ->  /t/YYYY/MM/DD/slug-XXX.webp
     og = soup.find("meta", property="og:image")
     if og and og.get("content"):
         content = og["content"]
-        # Only use it if it contains today's date (not the generic fallback image)
-        if date_prefix in content:
+        if date_prefix in content and "/g/" in content:
+            t_url = content.replace("/g/", "/t/").removesuffix(".jpg")
+            return t_url
+        # If already a /t/ URL with today's date, use as-is
+        if date_prefix in content and "/t/" in content:
             return content
-
-    # Fallback: <img src="/t/YYYY/MM/DD/slug-*.webp"> matching this slug
-    for img in soup.find_all("img", src=True):
-        src = img["src"]
-        if date_prefix in src and slug in src:
-            if src.startswith("/"):
-                return FRONTPAGES_BASE + src
-            return src
 
     print(f"  [WARN] No cover image found for slug '{slug}' on {date_prefix}")
     return None
