@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: newspaper-front-pages
+  namespace: finance
+spec:
+  # 07:00 UTC Mon-Fri (04:00 BRT / 08:00 WET / 07:00 GMT)
+  schedule: "0 7 * * 1-5"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: newspaper-report
+              image: triplom/newspaper-report:latest
+              imagePullPolicy: Always
+              env:
+                - name: GMAIL_USER
+                  value: "triplom@gmail.com"
+                - name: RECIPIENT_EMAIL
+                  value: "triplom@gmail.com"
+                - name: GMAIL_APP_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: gmail-credentials
+                      key: app_password
