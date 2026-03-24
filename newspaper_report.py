@@ -7,8 +7,11 @@ then sends a rich HTML email with sections per country.
 
 import os
 import re
+import time
 import smtplib
 import datetime
+import urllib.parse
+import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -136,6 +139,39 @@ COUNTRIES = [
                 "name": "NHK World",
                 "slug": None,  # not on frontpages, RSS only
                 "rss": "https://www3.nhk.or.jp/rss/news/cat0.xml",
+                "translate": True,  # headlines are in Japanese
+            },
+        ],
+    },
+    {
+        "name": "Spain",
+        "flag": "🇪🇸",
+        "papers": [
+            {
+                "name": "El País",
+                "slug": "el-pais",
+                "rss": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+            },
+            {
+                "name": "El Mundo",
+                "slug": "el-mundo",
+                "rss": "https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml",
+            },
+        ],
+    },
+    {
+        "name": "France",
+        "flag": "🇫🇷",
+        "papers": [
+            {
+                "name": "Le Monde",
+                "slug": "le-monde",
+                "rss": "https://www.lemonde.fr/rss/une.xml",
+            },
+            {
+                "name": "Le Figaro",
+                "slug": "le-figaro",
+                "rss": "https://www.lefigaro.fr/rss/figaro_actualites.xml",
             },
         ],
     },
@@ -184,7 +220,10 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
 def get_rss_headlines(rss_url: str, limit: int = 5) -> list[dict]:
     """Fetch top N headlines from an RSS feed. Returns list of {title, link}."""
     try:
-        feed = feedparser.parse(rss_url)
+        # Pre-fetch with requests so redirects and headers are handled correctly,
+        # then pass the raw content to feedparser to avoid redirect/bozo issues.
+        resp = requests.get(rss_url, headers=HEADERS, timeout=15)
+        feed = feedparser.parse(resp.content)
         results = []
         for entry in feed.entries[:limit]:
             title = entry.get("title", "").strip()
@@ -197,6 +236,35 @@ def get_rss_headlines(rss_url: str, limit: int = 5) -> list[dict]:
         return []
 
 
+def translate_to_english(text: str, source_lang: str = "ja") -> str:
+    """Translate text to English using the MyMemory free API (no key required)."""
+    try:
+        encoded = urllib.parse.quote(text[:450])  # API limit ~500 chars
+        url = f"https://api.mymemory.translated.net/get?q={encoded}&langpair={source_lang}|en"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            import json
+
+            data = json.loads(resp.read())
+            translated = data["responseData"]["translatedText"]
+            # MyMemory returns the original if it can't translate
+            if translated and translated.strip() != text.strip():
+                return translated.strip()
+    except Exception as e:
+        print(f"  [WARN] Translation failed: {e}")
+    return ""
+
+
+def translate_headlines(headlines: list[dict], source_lang: str = "ja") -> list[dict]:
+    """Return new list of headlines with an added 'translation' key."""
+    translated = []
+    for h in headlines:
+        en = translate_to_english(h["title"], source_lang)
+        time.sleep(0.3)  # be polite to the free API
+        translated.append({**h, "translation": en})
+    return translated
+
+
 # ---------------------------------------------------------------------------
 # HTML builder
 # ---------------------------------------------------------------------------
@@ -207,6 +275,8 @@ COUNTRY_COLORS = {
     "Brazil": "#009C3B",
     "Portugal": "#006600",
     "Japan": "#BC002D",
+    "Spain": "#AA151B",
+    "France": "#002395",
 }
 
 HTML_TEMPLATE = """\
@@ -314,6 +384,12 @@ HTML_TEMPLATE = """\
   .headlines-list a:hover {{
     text-decoration: underline;
   }}
+  .headline-translation {{
+    font-size: 11px;
+    color: #777;
+    font-style: italic;
+    margin-top: 2px;
+  }}
   .no-headlines {{
     font-size: 12px;
     color: #aaa;
@@ -352,11 +428,13 @@ def build_paper_block(paper: dict, cover_url: str | None, headlines: list[dict])
         cover_html = '<div class="no-cover">No cover<br>available</div>'
 
     if headlines:
-        items = "\n".join(
-            f'<li><a href="{h["link"]}" target="_blank">{h["title"]}</a></li>'
-            for h in headlines
-        )
-        headlines_html = f'<ul class="headlines-list">{items}</ul>'
+        items = []
+        for h in headlines:
+            line = f'<a href="{h["link"]}" target="_blank">{h["title"]}</a>'
+            if h.get("translation"):
+                line += f'<div class="headline-translation">{h["translation"]}</div>'
+            items.append(f"<li>{line}</li>")
+        headlines_html = f'<ul class="headlines-list">{"".join(items)}</ul>'
     else:
         headlines_html = '<p class="no-headlines">No headlines available</p>'
 
@@ -444,6 +522,10 @@ def main() -> None:
             print(f"    -> RSS headlines...")
             headlines = get_rss_headlines(paper["rss"], limit=5)
             print(f"       {len(headlines)} headlines fetched")
+
+            if paper.get("translate") and headlines:
+                print(f"    -> translating headlines to English...")
+                headlines = translate_headlines(headlines)
 
             papers_data.append(
                 {"paper": paper, "cover_url": cover_url, "headlines": headlines}
