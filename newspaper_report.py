@@ -82,6 +82,21 @@ COUNTRIES = [
                 "slug": "city-am",
                 "rss": "https://www.cityam.com/feed/",
             },
+            {
+                "name": "Daily Mail",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://www.dailymail.co.uk/news/index.rss",
+            },
+            {
+                "name": "Daily Express",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://feeds.feedburner.com/daily-express-news-showbiz",
+            },
+            {
+                "name": "The Mirror",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://www.mirror.co.uk/rss.xml",
+            },
         ],
     },
     {
@@ -103,6 +118,16 @@ COUNTRIES = [
                 "slug": "valor-economico",
                 "rss": "https://www.infomoney.com.br/feed/",
             },
+            {
+                "name": "O Estado de S. Paulo",
+                "slug": "o-estado-de-s-paulo",
+                "rss": "https://www.estadao.com.br/arc/outboundfeeds/rss/?outputType=xml",
+            },
+            {
+                "name": "Correio Brasiliense",
+                "slug": None,  # domain unreachable from this network; cover unavailable
+                "rss": None,
+            },
         ],
     },
     {
@@ -123,6 +148,12 @@ COUNTRIES = [
                 "name": "Correio da Manhã",
                 "slug": "correio-da-manha",
                 "rss": "https://www.cmjornal.pt/rss",
+            },
+            {
+                "name": "Jornal de Notícias",
+                "slug": "jornal-de-noticias",
+                "rss": "https://news.google.com/rss/search?q=site:jn.pt&hl=pt-PT&gl=PT&ceid=PT:pt",
+                "strip_source": "Jornal de Notícias",
             },
         ],
     },
@@ -183,7 +214,11 @@ COUNTRIES = [
 
 
 def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
-    """Scrape frontpages.com/<slug>/ page and return the thumbnail image URL for today."""
+    """Scrape frontpages.com/<slug>/ page and return the cover image URL for today.
+
+    Uses the og:image meta tag which always points to the specific paper's cover.
+    Falls back to scanning <img> tags if og:image is generic.
+    """
     if not slug:
         return None
     url = f"{FRONTPAGES_BASE}/{slug}/"
@@ -197,18 +232,18 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
     soup = BeautifulSoup(resp.text, "html.parser")
     date_prefix = date.strftime("%Y/%m/%d")
 
-    # Look for <img src="/t/YYYY/MM/DD/slug-*.webp">
+    # Primary: og:image meta tag — always the specific paper's cover when on a paper page
+    og = soup.find("meta", property="og:image")
+    if og and og.get("content"):
+        content = og["content"]
+        # Only use it if it contains today's date (not the generic fallback image)
+        if date_prefix in content:
+            return content
+
+    # Fallback: <img src="/t/YYYY/MM/DD/slug-*.webp"> matching this slug
     for img in soup.find_all("img", src=True):
         src = img["src"]
         if date_prefix in src and slug in src:
-            if src.startswith("/"):
-                return FRONTPAGES_BASE + src
-            return src
-
-    # Fallback: any /t/<today>/ image on the page
-    for img in soup.find_all("img", src=True):
-        src = img["src"]
-        if date_prefix in src:
             if src.startswith("/"):
                 return FRONTPAGES_BASE + src
             return src
@@ -219,6 +254,8 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
 
 def get_rss_headlines(rss_url: str, limit: int = 5) -> list[dict]:
     """Fetch top N headlines from an RSS feed. Returns list of {title, link}."""
+    if not rss_url:
+        return []
     try:
         # Pre-fetch with requests so redirects and headers are handled correctly,
         # then pass the raw content to feedparser to avoid redirect/bozo issues.
@@ -520,7 +557,13 @@ def main() -> None:
             cover_url = get_cover_image_url(paper.get("slug"), today)
 
             print(f"    -> RSS headlines...")
-            headlines = get_rss_headlines(paper["rss"], limit=5)
+            headlines = get_rss_headlines(paper.get("rss"), limit=5)
+            # Strip source suffix appended by Google News aggregation (e.g. " - Jornal de Notícias")
+            if paper.get("strip_source"):
+                suffix = f" - {paper['strip_source']}"
+                headlines = [
+                    {**h, "title": h["title"].removesuffix(suffix)} for h in headlines
+                ]
             print(f"       {len(headlines)} headlines fetched")
 
             if paper.get("translate") and headlines:
