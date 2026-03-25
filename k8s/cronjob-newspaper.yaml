@@ -23,6 +23,8 @@ spec:
                   value: "triplom@gmail.com"
                 - name: RECIPIENT_EMAIL
                   value: "triplom@gmail.com"
+                - name: EXTRA_RECIPIENTS
+                  value: "rocassas@gmail.com"
                 - name: GMAIL_APP_PASSWORD
                   valueFrom:
                     secretKeyRef:

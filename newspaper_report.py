@@ -24,8 +24,17 @@ import feedparser
 # ---------------------------------------------------------------------------
 
 GMAIL_USER = os.environ.get("GMAIL_USER", "triplom@gmail.com")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "smzqsglgmkixpbpt")
+GMAIL_SENDER_NAME = "Newspaper Front Pages"
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
 RECIPIENT = os.environ.get("RECIPIENT_EMAIL", "triplom@gmail.com")
+EXTRA_RECIPIENTS = [
+    r.strip()
+    for r in os.environ.get("EXTRA_RECIPIENTS", "rocassas@gmail.com").split(",")
+    if r.strip()
+]
+ALL_RECIPIENTS = list(
+    dict.fromkeys([RECIPIENT] + EXTRA_RECIPIENTS)
+)  # dedup, preserve order
 
 FRONTPAGES_BASE = "https://www.frontpages.com"
 
@@ -522,14 +531,14 @@ def build_html(today: datetime.date, all_data: list[dict]) -> str:
 def send_email(subject: str, html_body: str) -> None:
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = GMAIL_USER
-    msg["To"] = RECIPIENT
+    msg["From"] = f"{GMAIL_SENDER_NAME} <{GMAIL_USER}>"
+    msg["To"] = ", ".join(ALL_RECIPIENTS)
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
-        server.sendmail(GMAIL_USER, RECIPIENT, msg.as_string())
-    print(f"Email sent to {RECIPIENT}")
+        server.sendmail(GMAIL_USER, ALL_RECIPIENTS, msg.as_string())
+    print(f"Email sent to {', '.join(ALL_RECIPIENTS)}")
 
 
 # ---------------------------------------------------------------------------
