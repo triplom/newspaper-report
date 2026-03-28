@@ -165,6 +165,21 @@ COUNTRIES = [
                 "slug": "city-am",
                 "rss": "https://www.cityam.com/feed/",
             },
+            {
+                "name": "Daily Mail",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://www.dailymail.co.uk/articles.rss",
+            },
+            {
+                "name": "Daily Express",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://www.express.co.uk/news/rss",
+            },
+            {
+                "name": "The Mirror",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://www.mirror.co.uk/news/?service=rss",
+            },
         ],
     },
     {
@@ -191,25 +206,25 @@ COUNTRIES = [
                 "name": "Frankfurter Allgemeine Zeitung",
                 "slug": "frankfurter-allgemeine-zeitung",
                 "rss": "https://www.faz.net/rss/aktuell/",
-                "translate": True,
+                "translate": "de",
             },
             {
                 "name": "Süddeutsche Zeitung",
                 "slug": "suddeutsche-zeitung",
                 "rss": "https://rss.sueddeutsche.de/rss/Topthemen",
-                "translate": True,
+                "translate": "de",
             },
             {
                 "name": "Die Welt",
                 "slug": "die-welt",
                 "rss": "https://www.welt.de/feeds/latest.rss",
-                "translate": True,
+                "translate": "de",
             },
             {
                 "name": "Handelsblatt",
                 "slug": "handelsblatt",
                 "rss": "https://www.handelsblatt.com/contentexport/feed/top-themen",
-                "translate": True,
+                "translate": "de",
             },
         ],
     },
@@ -642,7 +657,7 @@ def main() -> None:
             cover_url = get_cover_image_url(paper.get("slug"), today)
 
             print(f"    -> RSS headlines...")
-            headlines = get_rss_headlines(paper.get("rss"), limit=5)
+            headlines = get_rss_headlines(paper.get("rss"), limit=3)
             # Strip source suffix appended by Google News aggregation (e.g. " - Jornal de Notícias")
             if paper.get("strip_source"):
                 suffix = f" - {paper['strip_source']}"
@@ -653,7 +668,9 @@ def main() -> None:
 
             if paper.get("translate") and headlines:
                 print(f"    -> translating headlines to English...")
-                headlines = translate_headlines(headlines)
+                translate_val = paper["translate"]
+                lang = translate_val if isinstance(translate_val, str) else "ja"
+                headlines = translate_headlines(headlines, source_lang=lang)
 
             papers_data.append(
                 {"paper": paper, "cover_url": cover_url, "headlines": headlines}
