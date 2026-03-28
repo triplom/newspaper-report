@@ -165,21 +165,6 @@ COUNTRIES = [
                 "slug": "city-am",
                 "rss": "https://www.cityam.com/feed/",
             },
-            {
-                "name": "Daily Mail",
-                "slug": None,  # not on frontpages.com
-                "rss": "https://www.dailymail.co.uk/news/index.rss",
-            },
-            {
-                "name": "Daily Express",
-                "slug": None,  # not on frontpages.com
-                "rss": "https://feeds.feedburner.com/daily-express-news-showbiz",
-            },
-            {
-                "name": "The Mirror",
-                "slug": None,  # not on frontpages.com
-                "rss": "https://www.mirror.co.uk/rss.xml",
-            },
         ],
     },
     {
@@ -206,21 +191,25 @@ COUNTRIES = [
                 "name": "Frankfurter Allgemeine Zeitung",
                 "slug": "frankfurter-allgemeine-zeitung",
                 "rss": "https://www.faz.net/rss/aktuell/",
+                "translate": True,
             },
             {
                 "name": "Süddeutsche Zeitung",
                 "slug": "suddeutsche-zeitung",
                 "rss": "https://rss.sueddeutsche.de/rss/Topthemen",
+                "translate": True,
             },
             {
                 "name": "Die Welt",
                 "slug": "die-welt",
                 "rss": "https://www.welt.de/feeds/latest.rss",
+                "translate": True,
             },
             {
                 "name": "Handelsblatt",
                 "slug": "handelsblatt",
                 "rss": "https://www.handelsblatt.com/contentexport/feed/top-themen",
+                "translate": True,
             },
         ],
     },
@@ -312,10 +301,12 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
         return None
 
     soup = BeautifulSoup(resp.text, "html.parser")
-    # Accept today's or yesterday's date prefix
+    # Accept today's, yesterday's, or 2 days ago date prefix
+    # (some papers, e.g. FT and City AM, publish the previous edition overnight)
     acceptable_dates = {
         date.strftime("%Y/%m/%d"),
         (date - datetime.timedelta(days=1)).strftime("%Y/%m/%d"),
+        (date - datetime.timedelta(days=2)).strftime("%Y/%m/%d"),
     }
 
     # og:image has the right paper-specific URL but uses /g/ path (404).
