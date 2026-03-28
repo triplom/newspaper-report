@@ -52,6 +52,80 @@ HEADERS = {
 
 COUNTRIES = [
     {
+        "name": "Brazil",
+        "flag": "🇧🇷",
+        "papers": [
+            {
+                "name": "Folha de S.Paulo",
+                "slug": "folha-de-s-paulo",
+                "rss": "https://feeds.folha.uol.com.br/emcimadahora/rss091.xml",
+            },
+            {
+                "name": "G1 — O Globo",
+                "slug": "o-globo",
+                "rss": "https://g1.globo.com/rss/g1/",
+            },
+            {
+                "name": "Valor Econômico",
+                "slug": "valor-economico",
+                "rss": "https://www.infomoney.com.br/feed/",
+            },
+            {
+                "name": "O Estado de S. Paulo",
+                "slug": "o-estado-de-s-paulo",
+                "rss": "https://www.estadao.com.br/arc/outboundfeeds/rss/?outputType=xml",
+            },
+            {
+                "name": "Correio Brasiliense",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://www.correiobraziliense.com.br/rss/politica",
+            },
+        ],
+    },
+    {
+        "name": "Portugal",
+        "flag": "🇵🇹",
+        "papers": [
+            {
+                "name": "Público",
+                "slug": "publico",
+                "rss": "https://feeds.feedburner.com/PublicoRSS",
+            },
+            {
+                "name": "Diário de Notícias",
+                "slug": "diario-de-noticias",
+                "rss": "https://www.dn.pt/feed/",
+            },
+            {
+                "name": "Correio da Manhã",
+                "slug": "correio-da-manha",
+                "rss": "https://www.cmjornal.pt/rss",
+            },
+            {
+                "name": "Jornal de Notícias",
+                "slug": "jornal-de-noticias",
+                "rss": "https://news.google.com/rss/search?q=site:jn.pt&hl=pt-PT&gl=PT&ceid=PT:pt",
+                "strip_source": "Jornal de Notícias",
+            },
+        ],
+    },
+    {
+        "name": "Spain",
+        "flag": "🇪🇸",
+        "papers": [
+            {
+                "name": "El País",
+                "slug": "el-pais",
+                "rss": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+            },
+            {
+                "name": "El Mundo",
+                "slug": "el-mundo",
+                "rss": "https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml",
+            },
+        ],
+    },
+    {
         "name": "United States",
         "flag": "🇺🇸",
         "papers": [
@@ -109,60 +183,39 @@ COUNTRIES = [
         ],
     },
     {
-        "name": "Brazil",
-        "flag": "🇧🇷",
+        "name": "France",
+        "flag": "🇫🇷",
         "papers": [
             {
-                "name": "Folha de S.Paulo",
-                "slug": "folha-de-s-paulo",
-                "rss": "https://feeds.folha.uol.com.br/emcimadahora/rss091.xml",
+                "name": "Le Monde",
+                "slug": "le-monde",
+                "rss": "https://www.lemonde.fr/rss/une.xml",
             },
             {
-                "name": "G1 — O Globo",
-                "slug": "o-globo",
-                "rss": "https://g1.globo.com/rss/g1/",
-            },
-            {
-                "name": "Valor Econômico",
-                "slug": "valor-economico",
-                "rss": "https://www.infomoney.com.br/feed/",
-            },
-            {
-                "name": "O Estado de S. Paulo",
-                "slug": "o-estado-de-s-paulo",
-                "rss": "https://www.estadao.com.br/arc/outboundfeeds/rss/?outputType=xml",
-            },
-            {
-                "name": "Correio Brasiliense",
-                "slug": None,  # domain unreachable from this network; cover unavailable
-                "rss": None,
+                "name": "Le Figaro",
+                "slug": "le-figaro",
+                "rss": "https://www.lefigaro.fr/rss/figaro_actualites.xml",
             },
         ],
     },
     {
-        "name": "Portugal",
-        "flag": "🇵🇹",
+        "name": "Italy",
+        "flag": "🇮🇹",
         "papers": [
             {
-                "name": "Público",
-                "slug": "publico",
-                "rss": "https://feeds.feedburner.com/PublicoRSS",
+                "name": "La Repubblica",
+                "slug": "la-repubblica",
+                "rss": "https://www.repubblica.it/rss/homepage/rss2.0.xml",
             },
             {
-                "name": "Diário de Notícias",
-                "slug": "diario-de-noticias",
-                "rss": "https://www.dn.pt/feed/",
+                "name": "Corriere della Sera",
+                "slug": "corriere-della-sera",
+                "rss": "https://xml2.corrieredellasera.it/rss/homepage.xml",
             },
             {
-                "name": "Correio da Manhã",
-                "slug": "correio-da-manha",
-                "rss": "https://www.cmjornal.pt/rss",
-            },
-            {
-                "name": "Jornal de Notícias",
-                "slug": "jornal-de-noticias",
-                "rss": "https://news.google.com/rss/search?q=site:jn.pt&hl=pt-PT&gl=PT&ceid=PT:pt",
-                "strip_source": "Jornal de Notícias",
+                "name": "La Stampa",
+                "slug": "la-stampa",
+                "rss": "https://www.lastampa.it/rss",
             },
         ],
     },
@@ -184,34 +237,23 @@ COUNTRIES = [
         ],
     },
     {
-        "name": "Spain",
-        "flag": "🇪🇸",
+        "name": "Australia",
+        "flag": "🇦🇺",
         "papers": [
             {
-                "name": "El País",
-                "slug": "el-pais",
-                "rss": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+                "name": "The Australian",
+                "slug": "the-australian",
+                "rss": "https://www.theaustralian.com.au/feed/",
             },
             {
-                "name": "El Mundo",
-                "slug": "el-mundo",
-                "rss": "https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml",
-            },
-        ],
-    },
-    {
-        "name": "France",
-        "flag": "🇫🇷",
-        "papers": [
-            {
-                "name": "Le Monde",
-                "slug": "le-monde",
-                "rss": "https://www.lemonde.fr/rss/une.xml",
+                "name": "Sydney Morning Herald",
+                "slug": "the-sydney-morning-herald",
+                "rss": "https://www.smh.com.au/rss/feed.xml",
             },
             {
-                "name": "Le Figaro",
-                "slug": "le-figaro",
-                "rss": "https://www.lefigaro.fr/rss/figaro_actualites.xml",
+                "name": "ABC News Australia",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://www.abc.net.au/news/feed/51120/rss.xml",
             },
         ],
     },
@@ -258,6 +300,14 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
     return None
 
 
+def _strip_cdata(text: str) -> str:
+    """Remove CDATA wrappers that some malformed RSS feeds leave in text fields."""
+    text = text.strip()
+    if text.startswith("<![CDATA[") and text.endswith("]]>"):
+        text = text[9:-3].strip()
+    return text
+
+
 def get_rss_headlines(rss_url: str, limit: int = 5) -> list[dict]:
     """Fetch top N headlines from an RSS feed. Returns list of {title, link}."""
     if not rss_url:
@@ -269,7 +319,7 @@ def get_rss_headlines(rss_url: str, limit: int = 5) -> list[dict]:
         feed = feedparser.parse(resp.content)
         results = []
         for entry in feed.entries[:limit]:
-            title = entry.get("title", "").strip()
+            title = _strip_cdata(entry.get("title", "").strip())
             link = entry.get("link", "").strip()
             if title:
                 results.append({"title": title, "link": link})
@@ -313,13 +363,15 @@ def translate_headlines(headlines: list[dict], source_lang: str = "ja") -> list[
 # ---------------------------------------------------------------------------
 
 COUNTRY_COLORS = {
-    "United States": "#B22234",
-    "United Kingdom": "#00247D",
     "Brazil": "#009C3B",
     "Portugal": "#006600",
-    "Japan": "#BC002D",
     "Spain": "#AA151B",
+    "United States": "#B22234",
+    "United Kingdom": "#00247D",
     "France": "#002395",
+    "Italy": "#009246",
+    "Japan": "#BC002D",
+    "Australia": "#00008B",
 }
 
 HTML_TEMPLATE = """\
