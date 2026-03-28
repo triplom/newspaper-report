@@ -199,22 +199,48 @@ COUNTRIES = [
         ],
     },
     {
+        "name": "Germany",
+        "flag": "🇩🇪",
+        "papers": [
+            {
+                "name": "Frankfurter Allgemeine Zeitung",
+                "slug": "frankfurter-allgemeine-zeitung",
+                "rss": "https://www.faz.net/rss/aktuell/",
+            },
+            {
+                "name": "Süddeutsche Zeitung",
+                "slug": "suddeutsche-zeitung",
+                "rss": "https://rss.sueddeutsche.de/rss/Topthemen",
+            },
+            {
+                "name": "Die Welt",
+                "slug": "die-welt",
+                "rss": "https://www.welt.de/feeds/latest.rss",
+            },
+            {
+                "name": "Handelsblatt",
+                "slug": "handelsblatt",
+                "rss": "https://www.handelsblatt.com/contentexport/feed/top-themen",
+            },
+        ],
+    },
+    {
         "name": "Italy",
         "flag": "🇮🇹",
         "papers": [
             {
                 "name": "La Repubblica",
-                "slug": "la-repubblica",
+                "slug": None,  # not on frontpages.com
                 "rss": "https://www.repubblica.it/rss/homepage/rss2.0.xml",
             },
             {
                 "name": "Corriere della Sera",
-                "slug": "corriere-della-sera",
-                "rss": "https://xml2.corrieredellasera.it/rss/homepage.xml",
+                "slug": None,  # not on frontpages.com
+                "rss": "https://www.corriere.it/rss/homepage.xml",
             },
             {
                 "name": "La Stampa",
-                "slug": "la-stampa",
+                "slug": None,  # not on frontpages.com
                 "rss": "https://www.lastampa.it/rss",
             },
         ],
@@ -243,7 +269,8 @@ COUNTRIES = [
             {
                 "name": "The Australian",
                 "slug": "the-australian",
-                "rss": "https://www.theaustralian.com.au/feed/",
+                "rss": "https://news.google.com/rss/search?q=site:theaustralian.com.au&hl=en-AU&gl=AU&ceid=AU:en",
+                "strip_source": "The Australian",
             },
             {
                 "name": "Sydney Morning Herald",
@@ -265,11 +292,14 @@ COUNTRIES = [
 
 
 def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
-    """Scrape frontpages.com/<slug>/ page and return the cover image URL for today.
+    """Scrape frontpages.com/<slug>/ page and return the cover image URL.
 
     The main cover is loaded via JavaScript (id="giornale-img" has no src in HTML).
     The og:image meta tag contains the correct paper-specific URL but uses the /g/
     path which returns 404. We convert it to the working /t/ thumbnail path.
+
+    Some papers (e.g. FT, City AM, Le Monde) publish the previous day's edition
+    overnight, so we accept covers dated today or yesterday.
     """
     if not slug:
         return None
@@ -282,21 +312,26 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
         return None
 
     soup = BeautifulSoup(resp.text, "html.parser")
-    date_prefix = date.strftime("%Y/%m/%d")
+    # Accept today's or yesterday's date prefix
+    acceptable_dates = {
+        date.strftime("%Y/%m/%d"),
+        (date - datetime.timedelta(days=1)).strftime("%Y/%m/%d"),
+    }
 
     # og:image has the right paper-specific URL but uses /g/ path (404).
     # Convert: /g/YYYY/MM/DD/slug-XXX.webp.jpg  ->  /t/YYYY/MM/DD/slug-XXX.webp
     og = soup.find("meta", property="og:image")
     if og and og.get("content"):
         content = og["content"]
-        if date_prefix in content and "/g/" in content:
-            t_url = content.replace("/g/", "/t/").removesuffix(".jpg")
-            return t_url
-        # If already a /t/ URL with today's date, use as-is
-        if date_prefix in content and "/t/" in content:
-            return content
+        if any(dp in content for dp in acceptable_dates):
+            if "/g/" in content:
+                return content.replace("/g/", "/t/").removesuffix(".jpg")
+            if "/t/" in content:
+                return content
 
-    print(f"  [WARN] No cover image found for slug '{slug}' on {date_prefix}")
+    print(
+        f"  [WARN] No cover image found for slug '{slug}' on {date.strftime('%Y/%m/%d')}"
+    )
     return None
 
 
@@ -369,6 +404,7 @@ COUNTRY_COLORS = {
     "United States": "#B22234",
     "United Kingdom": "#00247D",
     "France": "#002395",
+    "Germany": "#000000",
     "Italy": "#009246",
     "Japan": "#BC002D",
     "Australia": "#00008B",
