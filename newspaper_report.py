@@ -342,9 +342,21 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
             else:
                 webp_url = None
             if webp_url:
-                # Proxy through weserv.nl: converts WebP to JPEG which Gmail can display
+                # Proxy through wsrv.nl: converts WebP to JPEG which Gmail can display
+                # wsrv.nl is the canonical domain for images.weserv.nl (same CDN)
                 encoded = urllib.parse.quote(webp_url, safe="")
-                return f"https://images.weserv.nl/?url={encoded}&output=jpg&w=130"
+                proxy_url = f"https://wsrv.nl/?url={encoded}&output=jpg&w=130"
+                # Verify the proxy actually returns a valid image before using the URL
+                try:
+                    check = requests.get(proxy_url, headers=HEADERS, timeout=10)
+                    if check.status_code == 200 and check.content[:2] == b"\xff\xd8":
+                        return proxy_url
+                    else:
+                        print(
+                            f"  [WARN] wsrv.nl returned {check.status_code} for {slug}"
+                        )
+                except Exception as e:
+                    print(f"  [WARN] wsrv.nl check failed for {slug}: {e}")
 
     print(
         f"  [WARN] No cover image found for slug '{slug}' on {date.strftime('%Y/%m/%d')}"
@@ -666,6 +678,8 @@ def main() -> None:
 
             print(f"    -> cover image...")
             cover_url = get_cover_image_url(paper.get("slug"), today)
+            if cover_url:
+                print(f"       cover: {cover_url[:80]}...")
 
             print(f"    -> RSS headlines...")
             headlines = get_rss_headlines(paper.get("rss"), limit=3)
