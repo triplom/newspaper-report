@@ -80,7 +80,8 @@ COUNTRIES = [
             {
                 "name": "Correio Brasiliense",
                 "slug": None,  # not on frontpages.com
-                "rss": "https://correiobraziliense.webnode.com.br/rss/all.xml",
+                "rss": "https://news.google.com/rss/search?q=site:correiobraziliense.com.br&hl=pt-BR&gl=BR&ceid=BR:pt-419",
+                "strip_source": "Correio Braziliense",
             },
         ],
     },
