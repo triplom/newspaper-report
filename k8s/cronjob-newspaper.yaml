@@ -4,8 +4,8 @@ metadata:
   name: newspaper-front-pages
   namespace: finance
 spec:
-  # 07:00 UTC Mon-Fri (04:00 BRT / 08:00 WET / 07:00 GMT)
-  schedule: "0 7 * * 1-5"
+  # 07:00 UTC every day (04:00 BRT / 08:00 WET / 07:00 GMT)
+  schedule: "0 7 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
