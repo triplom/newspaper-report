@@ -176,6 +176,7 @@ COUNTRIES = [
             {
                 "name": "Daily Express",
                 "slug": None,  # not on frontpages.com
+                "cover_cdn": "express",  # cdn.images.express.co.uk
                 "rss": "https://www.express.co.uk/posts/rss/77/news",
             },
             {
@@ -361,6 +362,35 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
     print(
         f"  [WARN] No cover image found for slug '{slug}' on {date.strftime('%Y/%m/%d')}"
     )
+    return None
+
+
+def get_cover_image_url_cdn(cover_cdn: str, date: datetime.date) -> str | None:
+    """Fetch a cover image from a known publisher CDN when the paper is not on frontpages.com.
+
+    Supported values for cover_cdn:
+      "express" – Daily Express via cdn.images.express.co.uk
+                  URL: .../img/covers/70x91/front_YYYY-MM-DD.jpg
+                  The 70x91 thumbnail is the only publicly accessible size;
+                  wsrv.nl upscales it to w=130 for display consistency.
+    """
+    if cover_cdn == "express":
+        # Try today and up to 7 days back (handles weekends/holidays)
+        for i in range(8):
+            d = date - datetime.timedelta(days=i)
+            raw_url = (
+                f"https://cdn.images.express.co.uk/img/covers/70x91/"
+                f"front_{d.strftime('%Y-%m-%d')}.jpg"
+            )
+            try:
+                check = requests.get(raw_url, headers=HEADERS, timeout=10)
+                if check.status_code == 200 and check.content[:2] == b"\xff\xd8":
+                    # Proxy through wsrv.nl to resize to w=130 (consistent with frontpages covers)
+                    encoded = urllib.parse.quote(raw_url, safe="")
+                    return f"https://wsrv.nl/?url={encoded}&output=jpg&w=130"
+            except Exception as e:
+                print(f"  [WARN] Express CDN check failed ({d}): {e}")
+    print(f"  [WARN] No CDN cover found for cover_cdn='{cover_cdn}' on {date}")
     return None
 
 
@@ -597,6 +627,8 @@ def main() -> None:
 
             print(f"    -> cover image...")
             cover_url = get_cover_image_url(paper.get("slug"), today)
+            if not cover_url and paper.get("cover_cdn"):
+                cover_url = get_cover_image_url_cdn(paper["cover_cdn"], today)
             if cover_url:
                 print(f"       cover: {cover_url[:80]}...")
 
