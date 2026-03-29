@@ -330,14 +330,21 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
 
     # og:image has the right paper-specific URL but uses /g/ path (404).
     # Convert: /g/YYYY/MM/DD/slug-XXX.webp.jpg  ->  /t/YYYY/MM/DD/slug-XXX.webp
+    # Then proxy through images.weserv.nl to convert WebP -> JPEG (Gmail doesn't support WebP).
     og = soup.find("meta", property="og:image")
     if og and og.get("content"):
         content = og["content"]
         if any(dp in content for dp in acceptable_dates):
             if "/g/" in content:
-                return content.replace("/g/", "/t/").removesuffix(".jpg")
-            if "/t/" in content:
-                return content
+                webp_url = content.replace("/g/", "/t/").removesuffix(".jpg")
+            elif "/t/" in content:
+                webp_url = content
+            else:
+                webp_url = None
+            if webp_url:
+                # Proxy through weserv.nl: converts WebP to JPEG which Gmail can display
+                encoded = urllib.parse.quote(webp_url, safe="")
+                return f"https://images.weserv.nl/?url={encoded}&output=jpg&w=130"
 
     print(
         f"  [WARN] No cover image found for slug '{slug}' on {date.strftime('%Y/%m/%d')}"
