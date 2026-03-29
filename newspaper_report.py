@@ -61,14 +61,16 @@ COUNTRIES = [
                 "rss": "https://feeds.folha.uol.com.br/emcimadahora/rss091.xml",
             },
             {
-                "name": "G1 — O Globo",
+                "name": "O Globo",
                 "slug": "o-globo",
-                "rss": "https://g1.globo.com/rss/g1/",
+                "rss": "https://news.google.com/rss/search?q=site:oglobo.globo.com&hl=pt-BR&gl=BR&ceid=BR:pt-419",
+                "strip_source": "O Globo",
             },
             {
                 "name": "Valor Econômico",
                 "slug": "valor-economico",
-                "rss": "https://www.infomoney.com.br/feed/",
+                "rss": "https://news.google.com/rss/search?q=site:valor.globo.com&hl=pt-BR&gl=BR&ceid=BR:pt-419",
+                "strip_source": "Valor Econômico",
             },
             {
                 "name": "O Estado de S. Paulo",
@@ -78,7 +80,7 @@ COUNTRIES = [
             {
                 "name": "Correio Brasiliense",
                 "slug": None,  # not on frontpages.com
-                "rss": "https://www.correiobraziliense.com.br/rss/politica",
+                "rss": "https://correiobraziliense.webnode.com.br/rss/all.xml",
             },
         ],
     },
@@ -173,7 +175,7 @@ COUNTRIES = [
             {
                 "name": "Daily Express",
                 "slug": None,  # not on frontpages.com
-                "rss": "https://www.express.co.uk/news/rss",
+                "rss": "https://www.express.co.uk/posts/rss/77/news",
             },
             {
                 "name": "The Mirror",
@@ -245,7 +247,7 @@ COUNTRIES = [
             {
                 "name": "La Stampa",
                 "slug": None,  # not on frontpages.com
-                "rss": "https://www.lastampa.it/rss",
+                "rss": "https://www.lastampa.it/rss/copertina.xml",
             },
         ],
     },
@@ -260,9 +262,9 @@ COUNTRIES = [
             },
             {
                 "name": "NHK World",
-                "slug": None,  # not on frontpages, RSS only
-                "rss": "https://www3.nhk.or.jp/rss/news/cat0.xml",
-                "translate": True,  # headlines are in Japanese
+                "slug": None,  # not on frontpages
+                "rss": "https://news.google.com/rss/search?q=site:nhk.or.jp/nhkworld&hl=en-US&gl=US&ceid=US:en",
+                "strip_source": "NHK WORLD-JAPAN News",
             },
         ],
     },
