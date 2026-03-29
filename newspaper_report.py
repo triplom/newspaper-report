@@ -319,13 +319,10 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
         return None
 
     soup = BeautifulSoup(resp.text, "html.parser")
-    # Accept today's, yesterday's, or 2 days ago date prefix
-    # (some papers, e.g. FT and City AM, publish the previous edition overnight)
+    # Accept up to 4 days back: FT/City AM publish previous edition overnight,
+    # and on weekends some papers skip days (City AM is Mon-Fri only).
     acceptable_dates = {
-        date.strftime("%Y/%m/%d"),
-        (date - datetime.timedelta(days=1)).strftime("%Y/%m/%d"),
-        (date - datetime.timedelta(days=2)).strftime("%Y/%m/%d"),
-        (date - datetime.timedelta(days=3)).strftime("%Y/%m/%d"),
+        (date - datetime.timedelta(days=i)).strftime("%Y/%m/%d") for i in range(5)
     }
 
     # og:image has the right paper-specific URL but uses /g/ path (404).
@@ -446,136 +443,29 @@ HTML_TEMPLATE = """\
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Newspaper Front Pages – {date}</title>
-<style>
-  body {{
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: #f4f4f4;
-    color: #222;
-    margin: 0;
-    padding: 0;
-  }}
-  .wrapper {{
-    max-width: 900px;
-    margin: 0 auto;
-    background: #fff;
-  }}
-  .header {{
-    background: #111;
-    color: #fff;
-    padding: 28px 32px 20px;
-    text-align: center;
-  }}
-  .header h1 {{
-    margin: 0 0 4px;
-    font-size: 26px;
-    letter-spacing: 1px;
-  }}
-  .header p {{
-    margin: 0;
-    color: #aaa;
-    font-size: 13px;
-  }}
-  .country-section {{
-    padding: 24px 32px;
-    border-bottom: 3px solid #eee;
-  }}
-  .country-title {{
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0 0 18px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid;
-  }}
-  .paper-block {{
-    display: flex;
-    gap: 20px;
-    margin-bottom: 28px;
-    align-items: flex-start;
-  }}
-  .paper-cover {{
-    flex: 0 0 130px;
-  }}
-  .paper-cover img {{
-    width: 130px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    display: block;
-  }}
-  .paper-cover .no-cover {{
-    width: 130px;
-    height: 175px;
-    background: #e8e8e8;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #999;
-    font-size: 11px;
-    text-align: center;
-  }}
-  .paper-headlines {{
-    flex: 1;
-  }}
-  .paper-name {{
-    font-size: 15px;
-    font-weight: 700;
-    margin: 0 0 10px;
-    color: #333;
-  }}
-  .headlines-list {{
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }}
-  .headlines-list li {{
-    padding: 5px 0;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 13px;
-    line-height: 1.5;
-  }}
-  .headlines-list li:last-child {{
-    border-bottom: none;
-  }}
-  .headlines-list a {{
-    color: #1a1a1a;
-    text-decoration: none;
-  }}
-  .headlines-list a:hover {{
-    text-decoration: underline;
-  }}
-  .headline-translation {{
-    font-size: 11px;
-    color: #777;
-    font-style: italic;
-    margin-top: 2px;
-  }}
-  .no-headlines {{
-    font-size: 12px;
-    color: #aaa;
-    font-style: italic;
-  }}
-  .footer {{
-    background: #f8f8f8;
-    text-align: center;
-    padding: 18px;
-    font-size: 11px;
-    color: #aaa;
-    border-top: 1px solid #ddd;
-  }}
-</style>
 </head>
-<body>
-<div class="wrapper">
-  <div class="header">
-    <h1>📰 Daily Newspaper Front Pages</h1>
-    <p>{date_long}</p>
-  </div>
+<body style="font-family:'Segoe UI',Arial,sans-serif;background:#f4f4f4;color:#222;margin:0;padding:0;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f4;">
+<tr><td align="center">
+<table width="700" cellpadding="0" cellspacing="0" border="0" style="background:#fff;max-width:700px;">
+  <!-- HEADER -->
+  <tr>
+    <td style="background:#111;color:#fff;padding:24px 32px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;letter-spacing:1px;margin-bottom:4px;">&#128240; Daily Newspaper Front Pages</div>
+      <div style="font-size:13px;color:#aaa;">{date_long}</div>
+    </td>
+  </tr>
+  <!-- COUNTRY BLOCKS -->
   {country_blocks}
-  <div class="footer">
-    Generated automatically · Sources: frontpages.com + RSS feeds · {date}
-  </div>
-</div>
+  <!-- FOOTER -->
+  <tr>
+    <td style="background:#f8f8f8;text-align:center;padding:16px;font-size:11px;color:#aaa;border-top:1px solid #ddd;">
+      Generated automatically &middot; Sources: frontpages.com + RSS feeds &middot; {date}
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
 </body>
 </html>
 """
@@ -583,43 +473,69 @@ HTML_TEMPLATE = """\
 
 def build_paper_block(paper: dict, cover_url: str | None, headlines: list[dict]) -> str:
     if cover_url:
-        cover_html = f'<img src="{cover_url}" alt="{paper["name"]} front page">'
+        cover_html = (
+            f'<img src="{cover_url}" alt="{paper["name"]} front page" '
+            f'width="130" style="display:block;border:1px solid #ccc;border-radius:3px;">'
+        )
     else:
-        cover_html = '<div class="no-cover">No cover<br>available</div>'
+        cover_html = (
+            '<table width="130" cellpadding="0" cellspacing="0" border="0">'
+            '<tr><td width="130" height="175" align="center" valign="middle" '
+            'style="background:#e8e8e8;border:1px solid #ccc;border-radius:3px;'
+            'color:#999;font-size:11px;text-align:center;font-family:Arial,sans-serif;">'
+            "No cover<br>available</td></tr></table>"
+        )
 
     if headlines:
-        items = []
+        rows = []
         for h in headlines:
-            line = f'<a href="{h["link"]}" target="_blank">{h["title"]}</a>'
+            link_html = f'<a href="{h["link"]}" target="_blank" style="color:#1a1a1a;text-decoration:none;">{h["title"]}</a>'
             if h.get("translation"):
-                line += f'<div class="headline-translation">{h["translation"]}</div>'
-            items.append(f"<li>{line}</li>")
-        headlines_html = f'<ul class="headlines-list">{"".join(items)}</ul>'
+                link_html += f'<div style="font-size:11px;color:#777;font-style:italic;margin-top:2px;">{h["translation"]}</div>'
+            rows.append(
+                f'<tr><td style="padding:5px 0;border-bottom:1px solid #f0f0f0;'
+                f'font-size:13px;line-height:1.5;font-family:Arial,sans-serif;">{link_html}</td></tr>'
+            )
+        headlines_html = (
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+            f"{''.join(rows)}</table>"
+        )
     else:
-        headlines_html = '<p class="no-headlines">No headlines available</p>'
+        headlines_html = '<p style="font-size:12px;color:#aaa;font-style:italic;margin:0;">No headlines available</p>'
 
     return f"""\
-<div class="paper-block">
-  <div class="paper-cover">{cover_html}</div>
-  <div class="paper-headlines">
-    <div class="paper-name">{paper["name"]}</div>
-    {headlines_html}
-  </div>
-</div>"""
+<tr>
+  <td style="padding:0 0 20px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr valign="top">
+        <td width="130" style="padding-right:16px;">{cover_html}</td>
+        <td>
+          <div style="font-size:15px;font-weight:700;margin-bottom:8px;color:#333;font-family:Arial,sans-serif;">{paper["name"]}</div>
+          {headlines_html}
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>"""
 
 
 def build_country_block(country: dict, papers_data: list[dict], color: str) -> str:
-    paper_blocks = "\n".join(
+    paper_rows = "\n".join(
         build_paper_block(p["paper"], p["cover_url"], p["headlines"])
         for p in papers_data
     )
     return f"""\
-<div class="country-section">
-  <div class="country-title" style="border-color:{color}; color:{color};">
-    {country["flag"]} {country["name"]}
-  </div>
-  {paper_blocks}
-</div>"""
+<tr>
+  <td style="padding:20px 32px;border-bottom:3px solid #eee;">
+    <div style="font-size:19px;font-weight:700;margin-bottom:16px;padding-bottom:8px;
+                border-bottom:2px solid {color};color:{color};font-family:Arial,sans-serif;">
+      {country["flag"]} {country["name"]}
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      {paper_rows}
+    </table>
+  </td>
+</tr>"""
 
 
 def build_html(today: datetime.date, all_data: list[dict]) -> str:
