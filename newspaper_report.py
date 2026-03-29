@@ -8,12 +8,14 @@ then sends a rich HTML email with sections per country.
 import os
 import re
 import time
+import uuid
 import smtplib
 import datetime
 import urllib.parse
 import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 
 import requests
 from bs4 import BeautifulSoup
@@ -325,6 +327,7 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
         date.strftime("%Y/%m/%d"),
         (date - datetime.timedelta(days=1)).strftime("%Y/%m/%d"),
         (date - datetime.timedelta(days=2)).strftime("%Y/%m/%d"),
+        (date - datetime.timedelta(days=3)).strftime("%Y/%m/%d"),
     }
 
     # og:image has the right paper-specific URL but uses /g/ path (404).
@@ -561,9 +564,20 @@ HTML_TEMPLATE = """\
 """
 
 
-def build_paper_block(paper: dict, cover_url: str | None, headlines: list[dict]) -> str:
-    if cover_url:
-        cover_html = f'<img src="{cover_url}" alt="{paper["name"]} front page">'
+def download_image(url: str) -> bytes | None:
+    """Download an image from url and return its raw bytes, or None on failure."""
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        resp.raise_for_status()
+        return resp.content
+    except Exception as e:
+        print(f"  [WARN] Could not download image {url}: {e}")
+        return None
+
+
+def build_paper_block(paper: dict, cover_cid: str | None, headlines: list[dict]) -> str:
+    if cover_cid:
+        cover_html = f'<img src="cid:{cover_cid}" alt="{paper["name"]} front page">'
     else:
         cover_html = '<div class="no-cover">No cover<br>available</div>'
 
@@ -590,7 +604,7 @@ def build_paper_block(paper: dict, cover_url: str | None, headlines: list[dict])
 
 def build_country_block(country: dict, papers_data: list[dict], color: str) -> str:
     paper_blocks = "\n".join(
-        build_paper_block(p["paper"], p["cover_url"], p["headlines"])
+        build_paper_block(p["paper"], p["cover_cid"], p["headlines"])
         for p in papers_data
     )
     return f"""\
@@ -625,12 +639,35 @@ def build_html(today: datetime.date, all_data: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def send_email(subject: str, html_body: str) -> None:
-    msg = MIMEMultipart("alternative")
+def send_email(subject: str, html_body: str, inline_images: list[dict]) -> None:
+    """Send HTML email with inline images embedded as CID attachments.
+
+    inline_images: list of {"cid": str, "data": bytes, "mime_type": str}
+    """
+    # Outer: related (HTML + inline images)
+    msg_related = MIMEMultipart("related")
+
+    # Inner: alternative (plain fallback + HTML)
+    msg_alt = MIMEMultipart("alternative")
+    msg_alt.attach(
+        MIMEText("Please view this email in an HTML-capable client.", "plain", "utf-8")
+    )
+    msg_alt.attach(MIMEText(html_body, "html", "utf-8"))
+    msg_related.attach(msg_alt)
+
+    # Attach each inline image
+    for img in inline_images:
+        mime_img = MIMEImage(img["data"])
+        mime_img.add_header("Content-ID", f"<{img['cid']}>")
+        mime_img.add_header("Content-Disposition", "inline")
+        msg_related.attach(mime_img)
+
+    # Outer wrapper for headers
+    msg = MIMEMultipart("mixed")
     msg["Subject"] = subject
     msg["From"] = f"{GMAIL_SENDER_NAME} <{GMAIL_USER}>"
     msg["To"] = ", ".join(ALL_RECIPIENTS)
-    msg.attach(MIMEText(html_body, "html", "utf-8"))
+    msg.attach(msg_related)
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
@@ -648,6 +685,7 @@ def main() -> None:
     print(f"Running newspaper report for {today}")
 
     all_data = []
+    inline_images = []  # accumulated inline image attachments
 
     for country in COUNTRIES:
         print(f"\n[{country['flag']} {country['name']}]")
@@ -658,6 +696,13 @@ def main() -> None:
 
             print(f"    -> cover image...")
             cover_url = get_cover_image_url(paper.get("slug"), today)
+            cover_cid = None
+            if cover_url:
+                img_data = download_image(cover_url)
+                if img_data:
+                    cover_cid = uuid.uuid4().hex
+                    inline_images.append({"cid": cover_cid, "data": img_data})
+                    print(f"       cover downloaded ({len(img_data)} bytes)")
 
             print(f"    -> RSS headlines...")
             headlines = get_rss_headlines(paper.get("rss"), limit=3)
@@ -676,7 +721,7 @@ def main() -> None:
                 headlines = translate_headlines(headlines, source_lang=lang)
 
             papers_data.append(
-                {"paper": paper, "cover_url": cover_url, "headlines": headlines}
+                {"paper": paper, "cover_cid": cover_cid, "headlines": headlines}
             )
 
         all_data.append({"country": country, "papers_data": papers_data})
@@ -684,7 +729,7 @@ def main() -> None:
     html = build_html(today, all_data)
 
     subject = f"📰 Newspaper Front Pages – {today.strftime('%A, %B %d, %Y')}"
-    send_email(subject, html)
+    send_email(subject, html, inline_images)
 
 
 if __name__ == "__main__":
