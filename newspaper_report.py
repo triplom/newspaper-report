@@ -319,10 +319,13 @@ def get_cover_image_url(slug: str, date: datetime.date) -> str | None:
         return None
 
     soup = BeautifulSoup(resp.text, "html.parser")
-    # Accept up to 4 days back: FT/City AM publish previous edition overnight,
-    # and on weekends some papers skip days (City AM is Mon-Fri only).
+    # Accept up to 7 days back: FT/City AM publish previous edition overnight,
+    # and on weekends/holidays some papers skip days (City AM is Mon-Fri only,
+    # German/French papers skip public holidays). range(8) covers the worst case:
+    # a paper that doesn't publish on a 4-day long weekend (e.g. Easter Thu-Mon)
+    # will still have its last edition within 7 days when checked on Tuesday.
     acceptable_dates = {
-        (date - datetime.timedelta(days=i)).strftime("%Y/%m/%d") for i in range(5)
+        (date - datetime.timedelta(days=i)).strftime("%Y/%m/%d") for i in range(8)
     }
 
     # og:image has the right paper-specific URL but uses /g/ path (404).
