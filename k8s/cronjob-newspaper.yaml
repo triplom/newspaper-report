@@ -17,7 +17,7 @@ spec:
           containers:
             - name: newspaper-report
               image: triplom/newspaper-report:latest
-              imagePullPolicy: Always
+              imagePullPolicy: IfNotPresent
               env:
                 - name: GMAIL_USER
                   value: "triplom@gmail.com"
